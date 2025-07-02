@@ -1,0 +1,88 @@
+# 📦 Step 1: Import libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# 📥 Step 2: Load the dataset (upload manually in Colab)
+df = pd.read_csv('/content/titanic dataset.csv')
+
+# 👀 Step 3: Initial data check
+print(df.head())
+print(df.info())
+
+# 🧹 Step 4: Data Cleaning
+# Drop columns not useful for model
+df.drop(['Name', 'Cabin', 'Ticket', 'PassengerId'], axis=1, inplace=True)
+
+# Fill missing values
+df['Age'].fillna(df['Age'].median(), inplace=True)
+df['Embarked'].fillna(df['Embarked'].mode()[0], inplace=True)
+
+# Encode categorical variables
+df['Sex'] = df['Sex'].map({'male': 0, 'female': 1})
+df = pd.get_dummies(df, columns=['Embarked'], drop_first=True)
+
+# 🎯 Step 5: Define features (X) and target (y)
+X = df.drop('Survived', axis=1)
+y = df['Survived']
+
+# ✂️ Step 6: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 🌳 Step 7: Decision Tree Classifier
+dt = DecisionTreeClassifier(random_state=42)
+dt.fit(X_train, y_train)
+
+# 📈 Accuracy
+y_pred_dt = dt.predict(X_test)
+print("Decision Tree Accuracy:", accuracy_score(y_test, y_pred_dt))
+
+# 📊 Step 8: Visualize the Decision Tree
+plt.figure(figsize=(20, 10))
+plot_tree(dt, filled=True, feature_names=X.columns, class_names=["Not Survived", "Survived"])
+plt.title("Decision Tree")
+plt.show()
+
+# ⚖️ Step 9: Analyze Overfitting with Max Depth
+train_scores = []
+test_scores = []
+depth_range = range(1, 15)
+
+for depth in depth_range:
+    model = DecisionTreeClassifier(max_depth=depth, random_state=42)
+    model.fit(X_train, y_train)
+    train_scores.append(model.score(X_train, y_train))
+    test_scores.append(model.score(X_test, y_test))
+
+plt.plot(depth_range, train_scores, label='Train Accuracy')
+plt.plot(depth_range, test_scores, label='Test Accuracy')
+plt.xlabel('Max Depth')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.title('Decision Tree Overfitting Analysis')
+plt.show()
+
+# 🌲 Step 10: Random Forest Classifier
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+y_pred_rf = rf.predict(X_test)
+print("Random Forest Accuracy:", accuracy_score(y_test, y_pred_rf))
+
+# 🔍 Step 11: Feature Importance
+importances = rf.feature_importances_
+feat_names = X.columns
+plt.figure(figsize=(10, 5))
+sns.barplot(x=importances, y=feat_names)
+plt.title("Feature Importances (Random Forest)")
+plt.show()
+
+# 🔄 Step 12: Cross-Validation
+cv_scores_dt = cross_val_score(dt, X, y, cv=5)
+cv_scores_rf = cross_val_score(rf, X, y, cv=5)
+print("Cross-Validation Score (Decision Tree):", cv_scores_dt.mean())
+print("Cross-Validation Score (Random Forest):", cv_scores_rf.mean())
